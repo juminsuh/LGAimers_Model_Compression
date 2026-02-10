@@ -1,0 +1,11 @@
+# 모든 파일을 무시한다
+*
+
+# 하지만 .gitignore 파일 자체와 .py 파일은 예외로 한다
+!.gitignore
+!*.py
+
+ !base_model/
+ !base_model/*.py
+ !base_model/submit/
+ !base_model/submit/model
