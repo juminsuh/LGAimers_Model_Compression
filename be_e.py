@@ -29,7 +29,6 @@ my_custom_data = [
 ] * 16 
 # llmcompressor가 읽을 수 있도록 Dataset 객체로 변환
 #dataset = Dataset.from_dict({"text": my_custom_data})
-
 raw_dataset = load_dataset("Open-Orca/OpenOrca", split="train", streaming=True)
 subset_dataset = raw_dataset.take(1000)
 def format_data(example):
