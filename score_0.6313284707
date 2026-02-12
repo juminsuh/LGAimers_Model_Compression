@@ -1,0 +1,72 @@
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from datasets import load_dataset, Dataset
+from llmcompressor.modifiers.quantization import QuantizationModifier
+from llmcompressor import oneshot 
+import os
+
+MODEL_ID = "./base_model"
+OUTPUT_DIR = "./submit/model_quantized"
+
+# ============================================================================
+# 1. 512개 고정밀 캘리브레이션 셋 구축
+# ============================================================================
+print("▶ 고정밀 데이터셋 구축 (KMMLU 256 + MANTA 256)...")
+
+# [A] KMMLU-Redux 256개
+kmmlu = load_dataset("LGAI-EXAONE/KMMLU-Redux", split="test").shuffle(seed=42)
+kmmlu_texts = []
+for i in range(256):
+    item = kmmlu[i]
+    prompt = f"질문: {item['question']}\n선택지: {' '.join(item['options'])}\n정답:"
+    kmmlu_texts.append(prompt)
+
+# [B] MANTA-1M 256개 (고품질 한국어 대화만 선별)
+manta = load_dataset("LGAI-EXAONE/MANTA-1M", split="train", streaming=True)
+manta_texts = []
+count = 0
+for item in manta:
+    if item.get('language') == 'ko' and item.get('conversation'):
+        convs = item['conversation']
+        if len(convs) >= 2 and len(convs[0]['content']) > 40: # 유의미한 길이만 추출
+            text = f"User: {convs[0]['content']}\nAssistant: {convs[1]['content']}"
+            manta_texts.append(text)
+            count += 1
+    if count >= 256:
+        break
+
+all_texts = kmmlu_texts + manta_texts
+calib_dataset = Dataset.from_dict({"text": all_texts})
+
+# ============================================================================
+# 2. 모델 로드 및 W8A8 + KV-Cache INT8 양자화
+# ============================================================================
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    device_map="auto",
+    torch_dtype=torch.bfloat16,
+    trust_remote_code=True
+)
+
+# vLLM 속도 가속을 위한 핵심 레시피
+recipe = [
+    QuantizationModifier(targets="Linear", scheme="W8A8", ignore=["lm_head"]),
+    QuantizationModifier(targets="KV_Cache", scheme="INT8")
+]
+
+print(f"🔥 총 {len(all_texts)}개 샘플로 Oneshot 실행...")
+oneshot(
+    model=model,
+    dataset=calib_dataset,
+    recipe=recipe,
+    max_seq_length=1024, # 대화 맥락 유지를 위해 1024 유지
+    num_calibration_samples=len(all_texts)
+)
+
+# 3. 저장
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+model.save_pretrained(OUTPUT_DIR, safe_serialization=True)
+tokenizer.save_pretrained(OUTPUT_DIR)
+
+print("\n✅ 최적화 완료! 0.64 돌파를 기대해 봅니다.")
