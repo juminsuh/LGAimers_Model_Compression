@@ -1,0 +1,59 @@
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from datasets import Dataset
+from llmcompressor.modifiers.quantization import QuantizationModifier
+from llmcompressor import oneshot 
+import os
+
+# 1. 경로 설정
+MODEL_ID = "./base_model"
+OUTPUT_DIR = "./submit/model_quantized"
+
+# 2. 캘리브레이션 데이터 (가장 안정적인 형태)
+print("🚀 데이터셋 구축 중...")
+samples = [
+    "유저: 안녕하세요, 오늘 날씨 어때요?\n어시스턴트: 오늘은 맑고 화창한 날씨입니다.",
+    "유저: 123 + 456 계산해줘.\n어시스턴트: 123 더하기 456은 579입니다.",
+    "대한민국의 수도는 서울이며, 경복궁과 남산타워가 유명한 관광지입니다.",
+    "Below is an instruction that describes a task. Write a response that appropriately completes the request."
+] * 8 
+calib_dataset = Dataset.from_dict({"text": samples})
+
+# 3. 모델 및 토크나이저 로드
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    device_map="auto",
+    torch_dtype="auto", # bfloat16 자동 선택
+    trust_remote_code=True
+)
+
+# 4. [수정] QuantizationModifier 설정
+# 에러가 났던 args를 제거하고, 가장 호환성 높은 방식으로 선언합니다.
+recipe = [
+    QuantizationModifier(
+        targets="Linear",
+        scheme="W8A8", # 기본적으로 static/symmetric 설정을 시도함
+        ignore=["lm_head"]
+    )
+]
+
+print("⚡ W8A8 양자화 실행 (Oneshot)...")
+try:
+    oneshot(
+        model=model,
+        dataset=calib_dataset,
+        recipe=recipe,
+        max_seq_length=1024,
+        num_calibration_samples=len(samples)
+    )
+except Exception as e:
+    print(f"❌ Oneshot 실행 중 오류 발생: {e}")
+    print("💡 만약 에러가 지속되면 scheme='W8A16' (Weight-only)으로 전환을 고려하세요.")
+
+# 5. 저장
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+model.save_pretrained(OUTPUT_DIR, safe_serialization=True)
+tokenizer.save_pretrained(OUTPUT_DIR)
+
+print(f"\n✅ 최적화 완료! {OUTPUT_DIR}를 제출해 보세요.")
