@@ -35,8 +35,7 @@ This strategy improved generalization and prevented overfitting to specific data
 
 ## Presentation
 
-You can find our presentation slides here:
-👉 (Add your PPT link here)
+You can find our presentation slides [here](./ppt.pdf).
 
 ## Acknowledgements
 
