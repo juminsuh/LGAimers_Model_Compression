@@ -16,7 +16,7 @@ We propose a practical and robust compression pipeline tailored for LLM deployme
 
 1. We handled the activation outliers by applying `W8A8 quantization` and `QuantizationModifier` which achieved more stable and reliable quantization compared to naive approaches. (We found out the optimal approaches empirically.)
 2. We compressed `KV cache into FP8 precision` which effectively reduced memory bandwidth bottleneck and enabled improved inference speed.
-3. We included `diverse calibration data` which were synthesized by Gemini, which was prompted to generate instruction-following QA (i.e., IFEval from Google) and general English text. This strategy improved generalization and prevented overfitting to specific data distributions. 
+3. We included `two types of calibration data` which were synthesized by Gemini, which was prompted to generate instruction-following QA (i.e., IFEval from Google) and general Korean text. Since the evaluation setting was a fully private, we planned to utilize one of the most common task (raw text & instruction-following QA) for generalization. 
 
 ## Main Insights
 * Find the optimal combination of quantization values and recipe empirically is important
