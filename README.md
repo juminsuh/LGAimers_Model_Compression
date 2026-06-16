@@ -14,19 +14,9 @@ https://dacon.io/competitions/official/236689/overview/description
 
 We propose a practical and robust compression pipeline tailored for LLM deployment under constrained environments.
 
-1. Stable Quantization with Activation Outlier Handling
-Applied W8A8 quantization
-Leveraged QuantizationModifier to mitigate activation outliers
-Achieved more stable and reliable quantization compared to naive approaches
-2. KV Cache Compression (FP8)
-Compressed KV cache into FP8 precision
-Effectively reduced memory bandwidth bottleneck
-Enabled faster inference and improved efficiency in long-context scenarios
-3. Calibration Strategy under Private Evaluation
-Since the evaluation dataset was 100% hidden, we designed a robust calibration approach:
-Used QA tasks commonly adopted in LLM evaluation
-Included instruction-following benchmarks (e.g., Google IFEval)
-This strategy improved generalization and prevented overfitting to specific data distributions
+1. We handled the activation outliers by applying `W8A8 quantization` and `QuantizationModifier` which achieved more stable and reliable quantization compared to naive approaches. (We found out the optimal approaches empirically.)
+2. We compressed `KV cache into FP8 precision` which effectively reduced memory bandwidth bottleneck and enabled improved inference speed.
+3. We included `diverse calibration data` which were synthesized by Gemini, which was prompted to generate instruction-following QA (i.e., IFEval from Google) and general English text. This strategy improved generalization and prevented overfitting to specific data distributions. 
 
 ## Main Insights
 * Find the optimal combination of quantization values and recipe empirically is important
