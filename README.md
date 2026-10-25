@@ -27,6 +27,13 @@ We propose a practical and robust compression pipeline tailored for LLM deployme
 
 You can find our presentation slides [here](./ppt.pdf).
 
+## My Contribution
+* Constructed the implementation environment and distributed it to other team members
+* Estimated the optimal calibration dataset's distribution which was hidden for evaluation, testing math problems, multilingual texts (English + Korean), and instruction-following tasks. 
+* Verified that selective quantization of the target model into INT8 and compression of KV cache into FP8 balances the optimal point of inference speed and task performance through trials & errors. 
+* Prepared the slides end-to-end with full understanding of background knowledge about quantization and the target model, providing the final oral presentation. 
+
+
 ## Acknowledgements
 
 We thank the organizers of LG Aimers and DACON for providing a challenging and well-designed benchmark environment.
